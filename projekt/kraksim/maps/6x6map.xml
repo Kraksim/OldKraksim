@@ -62,7 +62,7 @@
         <gateway id="E5" x="1480" y="850"/>
         <gateway id="E6" x="1480" y="1010"/>
     </nodes>
-    <roads defaultSpeedLimit="2">
+    <roads defaultSpeedLimit="5">
         <road from="N1" id="N1X1" to="X1">
             <uplink>
                 <main length="50"/>

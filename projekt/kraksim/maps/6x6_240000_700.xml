@@ -1,12 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <traffic>
+<<<<<<< HEAD
     <scheme count="2">
+=======
+    <scheme count="350">
+>>>>>>> branch 'master' of git@github.com:majcherek/io.git
         <gateway id="W1">
             <uniform a="0" b="20"/>
         </gateway>
         <gateway id="N1"/>
     </scheme>
+<<<<<<< HEAD
     <scheme count="0">
+=======
+    <scheme count="350">
+>>>>>>> branch 'master' of git@github.com:majcherek/io.git
         <gateway id="E1">
             <uniform a="0" b="10"/>
         </gateway>
