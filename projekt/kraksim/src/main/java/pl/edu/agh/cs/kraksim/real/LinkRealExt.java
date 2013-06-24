@@ -105,7 +105,6 @@ class LinkRealExt implements LinkBlockIface, LinkMonIface {
 				car.setAction(null);
 			} else {
 				car.nextTripPoint();
-	
 				car.setAction(nextAction);
 			}
 			

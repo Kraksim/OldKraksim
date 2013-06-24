@@ -57,7 +57,9 @@ public class LinkMiniStatExt {
 
 				int length = link.getLength();
 
-				int duration = clock.getTurn() - entranceTurnMap.remove(driver);
+				Integer tmp = entranceTurnMap.remove(driver);
+				
+				int duration = clock.getTurn() - ((tmp==null)?(0):(tmp));
 
 				helper.incTravelLength(driver, length);
 

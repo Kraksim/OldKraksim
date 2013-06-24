@@ -73,7 +73,7 @@
         </road>
         <road from="W1" id="W1X1" to="X1">
             <uplink>
-                <main length="50" numberOfLanes="3"/>
+                <main length="50" numberOfLanes="4"/>
             </uplink>
             <downlink>
                 <main length="50"/>
@@ -81,7 +81,7 @@
         </road>
         <road from="X1" id="X1X2" to="X2">
             <uplink>
-                <main length="50"/>
+                <main length="50" numberOfLanes="4"/>
                 <left length="20"/>
             </uplink>
             <downlink>

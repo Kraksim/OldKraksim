@@ -47,6 +47,10 @@ class LaneRealExt implements LaneBlockIface, LaneCarInfoIface, LaneMonIface {
 	
 	private CarMoveModel carMoveModel;
 
+	public CarMoveModel getCarMoveModel() {
+		return carMoveModel;
+	}
+
 	LaneRealExt(Lane lane, RealEView ev, RealSimulationParams params) {
 		if (logger.isTraceEnabled()) {
 			logger.trace("Constructing LaneRealExt ");
@@ -140,107 +144,32 @@ class LaneRealExt implements LaneBlockIface, LaneCarInfoIface, LaneMonIface {
 		if (logger.isTraceEnabled()) {
 			logger.trace(car + " on " + lane);
 		}
-		if (hasCarPlace()) {
-			
-			driveCar(car, offset - 1, firstCarPos - 1, stepsMax, stepsDone,
-					new InductionLoopPointer(), true);
-			
-			return true;
-		} else {
-			return false;
+//		if(getCarMoveModel().getName().equals(CarMoveModel.MODEL_MULTINAGLE)){
+//			if(hasCarPlace()){
+//				//put car in the lane
+//				carEnterLane(car, offset-1, firstCarPos-1, stepsMax, stepsDone);
+//				return true;
+//			}
+//			else{
+//				return false;
+//			}
+//		}
+//		else{
+		if(car.pos > firstCarPos){
+			firstCarPos = car.pos;
 		}
-	}
-	
-	boolean pushCarMulti(Car car, int stepsMax, int stepsDone) {
-		Iterator<Car> it = this.cars.iterator();
-		LinkedList<Car> newC = new LinkedList<Car>();
-		boolean ins = false;
-		while(it.hasNext()){
-			Car c = it.next();
-			newC.add(c);
-			if(c.pos<car.pos && !ins){
-				newC.add(car);
-			}
-		}
-		this.cars=newC;
-		
-		return true;		
-	}
-
-	private boolean driveCarMulti(Car car, int startPos, int freePos, int stepsMax,
-			int stepsDone, InductionLoopPointer ilp, boolean entered) {
-
-		int range = startPos + stepsMax - stepsDone;
-		int pos;
-		boolean stay = false;
-
-		LaneRealExt sourceLane;
-		Action action = car.getAction();
-		
-		if (action != null) {
-			sourceLane = realView.ext(action.getSource());
-			int x = compareLanePositionTo(sourceLane);
-			if (x < 0) {
-				sourceLane = rightNeighbor();
-			} else if (x > 0) {
-				sourceLane = leftNeighbor();
-			}
-		} else {
-			sourceLane = this;
-		}
-		int lastCrossedLine;
-		if (!equals(sourceLane)) {
-			
-			int laneChangePos = sourceLane.offset - 1;
-
-			pos = Math.min(Math.min(range, freePos), Math.max(laneChangePos,car.pos));
-			
-			//change lane
-			
-			if (pos == range
-					|| pos < laneChangePos
-					|| !sourceLane.pushCarMulti(car, stepsMax, stepsDone + pos
-							- startPos))
-				stay = true;
-			lastCrossedLine = pos;
-		} else {
-			int lastPos = linkLength() - 1;
-			pos = Math.min(Math.min(range, freePos), lastPos);
-			if (pos == range
-					|| pos < lastPos
-					|| blocked
-					|| !handleCarActionMulti(car, stepsMax, stepsDone + pos
-							- startPos)) {
-				stay = true;
-				lastCrossedLine = pos;
-			} else {
-				lastCrossedLine = pos+1;
-			}
-		}
-
-		if (stay) {
-			car.pos = pos;
-			car.velocity = stepsDone + pos - startPos;
-			if (entered) {
-				enteringCars.add(car);
-			}
-		}
-		
-		while (!ilp.atEnd() && ilp.current().line <= lastCrossedLine) {
-
-			if (ilp.current().line > startPos) {
-				if (logger.isTraceEnabled()) {
-					logger.trace(">>>>>>> INDUCTION LOOP before " + startPos
-							+ " and " + lastCrossedLine + " for " + lane);
-				}
+			if (hasCarPlace()) {	
+				driveCar(car, car.pos-1, firstCarPos - 1, stepsMax, stepsDone,
+						new InductionLoopPointer(), true);
 				
-				ilp.current().handler.handleCarDrive(car.velocity, car.driver);
+				return true;
+			} else {
+				return false;
 			}
-
-			ilp.forward();
-		}
-		return stay;
+//		}
 	}
+
+	
 	
 	/*
 	 * previous element to ilp.current() (if exists) should be an induction loop
@@ -277,12 +206,12 @@ class LaneRealExt implements LaneBlockIface, LaneCarInfoIface, LaneMonIface {
 		/* last line of this link crossed by the car in this turn */
 		int lastCrossedLine;
 		
-		if (!equals(sourceLane)) {
+		if (!equals(sourceLane)) {		
 			
-			int laneChangePos = sourceLane.offset - 1;
+			int laneChangePos = Math.max(sourceLane.offset - 1,car.pos);
 
-			pos = Math.min(Math.min(range, freePos), Math.max(laneChangePos,car.pos));
-			
+			pos = Math.min(Math.min(range, freePos), laneChangePos);
+	
 			if (pos == range
 					|| pos < laneChangePos
 					|| !sourceLane.pushCar(car, stepsMax, stepsDone + pos
@@ -309,8 +238,10 @@ class LaneRealExt implements LaneBlockIface, LaneCarInfoIface, LaneMonIface {
 		
 
 		if (stay) {
-			car.pos = pos;
+			if(car.pos<pos)car.pos = pos;
+			int v = stepsDone + pos - startPos;
 			car.velocity = stepsDone + pos - startPos;
+			if (car.velocity<0)car.velocity=0;
 			if (entered) {
 				enteringCars.add(car);
 			}
@@ -373,6 +304,8 @@ class LaneRealExt implements LaneBlockIface, LaneCarInfoIface, LaneMonIface {
 			}
 			LinkRealExt l = realView.ext(action.getTarget());
 
+			car.pos=0;
+			
 			return l.enterCar(car, stepsMax, stepsDone);
 		}
 
@@ -429,39 +362,7 @@ class LaneRealExt implements LaneBlockIface, LaneCarInfoIface, LaneMonIface {
 		return false;
 	}
 	
-	private boolean handleCarActionMulti(Car car, int stepsMax, int stepsDone) {
-
-		Action action = car.getAction();
-
-		if (action == null) {
-			car.velocity = stepsMax;
-			((GatewayRealExt) realView.ext(linkEnd())).acceptCar(car);
-			return true;
-		}
-
-		if (wait) {
-			/* we are waiting one turn */
-			wait = false;
-			return false;
-		} else {
-			/* we are approaching an intersection */
-			Lane[] pl = action.getPriorLanes();
-			// int i;
-			for (int i = 0; i < pl.length; i++) {
-				if (realView.ext(pl[i]).carApproaching) {
-					if (checkDeadlock(action.getSource(), pl[i])) {
-						logger.warn(lane + "DEADLOCK situation.");
-						deadLockRecovery();
-					}
-					return false;
-				}
-			}
-			LinkRealExt l = realView.ext(action.getTarget());
-
-			return l.enterCar(car, stepsMax, stepsDone);
-		}
-
-	}
+	
 
 	/**
 	 * Nagel-Schreckenberg
@@ -514,7 +415,7 @@ class LaneRealExt implements LaneBlockIface, LaneCarInfoIface, LaneMonIface {
 					}
 					
 					Action a0 = car.getAction();				
-					if(a0!=null){
+					if(a0!=null && car.pos < (this.linkLength()-5)){
 						Action a = new Action(a0.getSource(), a0.getTarget(), a0.getPriorLanes());
 						LaneRealExt sourceLane = realView.ext(a.getSource());
 						int c = a.getSource().getOwner().laneCount();
@@ -609,12 +510,9 @@ class LaneRealExt implements LaneBlockIface, LaneCarInfoIface, LaneMonIface {
 				}
 
 				boolean stay = true;
-				if(carMoveModel.getName().equals(CarMoveModel.MODEL_MULTINAGLE)){
-					stay=driveCarMulti(car, car.pos, freePos, v, 0, ilp, false);
-				}
-				else{
-					stay=driveCar(car, car.pos, freePos, v, 0, ilp, false);
-				}
+				
+				stay=driveCar(car, car.pos, freePos, v, 0, ilp, false);
+				
 
 				if (!stay) {
 					if (nextCar != null)
@@ -623,6 +521,12 @@ class LaneRealExt implements LaneBlockIface, LaneCarInfoIface, LaneMonIface {
 					cit.remove();
 					if (nextCar != null)
 						cit.next();
+					Car cx = cars.peek();
+					if (cx != null) {
+						firstCarPos = cx.pos;
+					} else {
+						firstCarPos = Integer.MAX_VALUE;
+					}
 				}
 
 				// remember this car as next (we are going backwards)
@@ -637,7 +541,26 @@ class LaneRealExt implements LaneBlockIface, LaneCarInfoIface, LaneMonIface {
 		}
 		if (enteringCars.size() > 0) {
 			for (Car c:enteringCars){
-				cars.addFirst(c);
+				if(c.getAction()!=null && c.getAction().getTarget().equals(this.owner())){
+					c.pos=0;
+					c.velocity=0;
+				}
+				Iterator<Car> it = this.cars.iterator();
+				LinkedList<Car> newC = new LinkedList<Car>();
+				boolean ins = false;
+				while(it.hasNext()){
+					Car c1 = it.next();
+					newC.add(c1);
+					if(c1.pos<c.pos && !ins){
+						newC.add(c);
+						ins=true;
+					}
+				}
+				if(!ins){
+					newC.addFirst(c);
+				}
+				this.cars=newC;
+//				this.cars.addFirst(c);
 			}
 			enteringCars.clear();
 		}
